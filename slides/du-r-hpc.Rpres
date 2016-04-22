@@ -86,6 +86,13 @@ How about this?  Parallelism is cool.  Any boring nerd can use one computer, but
 using 10,000 at once is another story. We don’t call them supercomputers for 
 nothing.
 
+What do we have at DU?
+========================================================
+
+<div class="midcenter" style="margin-left:-250px; margin-top:-250px;">
+<img src="hpc-config.png" width="500"></img>
+</div>
+
 Types of Parallelism
 ========================================================
 
@@ -454,6 +461,10 @@ incremental:true
 
 <div style="margin-left:150px; margin-top:25px;">
 <img src="supercomputer.jpg" width="300" margin></img>
+</div>
+
+<div class="footer" style="margin-top:-75px;font-size:60%;">
+Idea: Shamelessly stolen from Paul Constantine at Mines 
 </div>
 
 ***
