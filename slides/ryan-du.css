@@ -1,0 +1,140 @@
+/*********************************************
+ * NAVIGATION CONTROLS
+ * DU Colors
+ *********************************************/
+ 
+.reveal .controls div.navigate-left,
+.reveal .controls div.navigate-left.enabled {
+  border-right-color: #ECC3BF;
+}
+
+.reveal .controls div.navigate-right,
+.reveal .controls div.navigate-right.enabled {
+  border-left-color: #ECC3BF;
+}
+
+.reveal .controls div.navigate-up,
+.reveal .controls div.navigate-up.enabled {
+  border-bottom-color: #ECC3BF;
+}
+
+.reveal .controls div.navigate-down,
+.reveal .controls div.navigate-down.enabled {
+  border-top-color: #ECC3BF;
+}
+
+.reveal .controls div.navigate-left.enabled:hover {
+  border-right-color: #F08080;
+}
+
+.reveal .controls div.navigate-right.enabled:hover {
+  border-left-color: #F08080;
+}
+
+.reveal .controls div.navigate-up.enabled:hover {
+  border-bottom-color: #F08080;
+}
+
+.reveal .controls div.navigate-down.enabled:hover {
+  border-top-color: #F08080;
+}
+
+.reveal .progress span {
+  background: #990000;
+}
+
+/* top 5 css hacks given here
+* http://bit.ly/1SLT5oS
+*/
+
+.small-code pre code {
+  font-size: 1.2em;
+}
+
+.smaller-code pre code {
+  font-size: 1em;
+}
+
+.footer {
+    color: black;
+    background: #E8E8E8;
+    position: fixed;
+    top: 90%;
+    text-align:center;
+    width:100%;
+}
+
+.midcenter {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+}
+
+
+.section .reveal .state-background {
+    background: white;
+}
+
+.section .reveal h1,
+.section .reveal p {
+    color: #990000;
+    top: 5%;
+    word-wrap: normal;
+    -moz-hyphens: none;
+}
+
+/* End Top Five */
+
+/* DU Stuff */
+
+.reveal .present {
+   background-image: url(bia-logo.jpg);
+   background-repeat: no-repeat;
+   background-position: 0% 100%;
+   background-size: 20%;
+}
+
+.reveal h3 {
+  font-weight: bold;
+  color: #850000;
+}
+
+.reveal h2,
+.reveal h1,
+.reveal li,
+.reveal p {
+  color: black;
+}
+
+.reveal a:not(.image) {
+  color: black;
+  text-decoration: underline;
+  -webkit-transition: color .15s ease;
+  -moz-transition: color .15s ease;
+  -ms-transition: color .15s ease;
+  -o-transition: color .15s ease;
+  transition: color .15s ease; }
+
+.reveal a:not(.image):hover {
+  color: black;
+  font-weight: bold;
+  text-shadow: none;
+  border: none; }
+
+.reveal blockquote {
+  display: block;
+  position: relative;
+  width: 85%;
+  margin: 5px auto;
+  padding-top: 25px;
+  padding-bottom: 0px;
+
+  font-style: normal;
+  background: #B2C1C6;
+  border: 1px solid black;
+  box-shadow: none;
+  margin-left: 50px;
+  padding-left: 25px;
+  padding-right: -10px;
+}
+
