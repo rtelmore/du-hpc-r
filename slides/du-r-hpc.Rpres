@@ -1,0 +1,473 @@
+Using R and the pbdR packages on DU’s High Performance Computer
+========================================================
+author: Ryan Elmore
+date: 22 April 2016
+autosize: true
+css: ryan-du.css
+transition: none
+
+```{r r-packages, include = FALSE}
+library(knitcitations)
+library(ggplot2)
+library(wesanderson)
+set.seed(9282)
+```
+
+```{r knitr-options, include = FALSE}
+opts_chunk$set(fig.path = "fig/",
+               fig.lp = "fig:",
+               fig.keep="high",
+               fig.show="hold",
+               fig.align="center",
+               echo = FALSE,
+               warning = FALSE, 
+               message = FALSE,
+               comment = NA)
+options(knitr.table.format = 'html')
+```
+
+```{r data, include = F}
+results <- data.frame(
+  size = rep(c(7.63, 76.29, 762.94), 8),
+  time = c(0.196, 2.881, 61.712,
+           0.105, 1.523, 23.075,
+           0.928, 2.889, 23.310,
+           0.697, 2.745, 45.683,
+           7.217, 9.340, 56.197,
+           8.495, 10.133, 53.197,
+           2.751, 4.395, 9.358,
+           7.534, 7.980, 25.000),
+  config = c(rep("1:1", 3),
+             rep("2:2", 3),
+             rep("4:2", 3),
+             rep("2:4", 3),
+             rep("8:2", 3),
+             rep("4:4", 3),
+             rep("16:2", 3),
+             rep("8:4", 3))
+)
+
+p <- ggplot(data = (results), aes(x = size, y = time, color = config))
+```
+
+About Me
+========================================================
+- PhD in Statistics from Penn State in 2003; Postdoc at ANU
+- CSU Dept of Statistics 2005 - 2008; Startup; NREL 2010 - 2015
+- DU starting last Fall
+- Research Interests:
+  - Sports statistics/analytics
+  - Energy aware high performance computing
+  - Nonparametric statistics
+
+What is pbdR?
+========================================================
+
+```{r bib1}
+bib <- read.bibtex("pbdr.bib")
+```
+
+<div class="midcenter" style="margin-left:-500px; margin-top:-220px;">
+<img src="pbdr-homepage.png" width="1000"></img>
+</div>
+
+`r citet(bib["pbdR2012"])`
+
+
+Why R on a Supercomputer?
+========================================================
+incremental: true
+
+From *Speaking Serial R with a Parallel Accent* on justifying the need for 
+parallelism:
+
+> Blah blah blah Moore’s Law, blah blah Big Data, blah blah blah Concurrency. 
+How about this?  Parallelism is cool.  Any boring nerd can use one computer, but
+using 10,000 at once is another story. We don’t call them supercomputers for 
+nothing.
+
+Types of Parallelism
+========================================================
+
+- Task parallelism
+  - Embarrassingly parallel tasks
+  - AIC on a lot of models
+  - `foreach()`, `doMC()`, multicore package, etc.
+- Data parallelism
+  - Split data and work on subsets
+  - SPMD programming in R
+  - MPI stuff
+
+What is MPI
+========================================================
+
+- Message Passing Interface
+- A standard created by vendors, implementors, and users 
+- Implementations:
+  - OpenMPI
+  - MPICH, MPICH2
+
+MPI in R
+========================================================
+
+- RMPI vs pbdMPI
+- The pbdDEMO vignette talks about the differences
+- In my opinion, Rmpi is lower level
+- pbdMPI is integrated into the other pbdR packages
+
+pbdMPI
+========================================================
+
+- `init()`, `finalize()`
+- `comm.rank()`, `comm.size()`
+- `barrier()`
+- `allreduce()`, `allgather()`, `bcast()` 
+- `comm.print()`, `comm.cat()`
+- `comm.set.seed()`
+
+Hello World
+========================================================
+class: small-code
+
+```{r hello-world, eval = FALSE, echo = TRUE}
+library(pbdMPI, quiet = TRUE)
+init()
+.comm.size <- comm.size()
+.comm.rank <- comm.rank()
+.hostname <- Sys.info()["nodename"]
+msg <- sprintf("I am %d of %d on %s.\n", .comm.rank, .comm.size, .hostname)
+comm.cat(msg, all.rank = TRUE, quiet = TRUE)
+finalize()
+```
+
+Hello World (Shell Script)
+========================================================
+class: smaller-code
+
+```{r, engine="bash", hello-sh, eval = FALSE, echo = TRUE}
+#!/bin/bash
+#PBS -l walltime=00:00:05:00   # WALLTIME limit
+#PBS -l nodes=2:ppn=8          # Number of nodes, use 8 processes on each
+                               # Specify :ppn=x in previous line if you want
+                               #  to use a "x" processors on each node
+                               #  if there are core/memory concerns
+#PBS -M ryan.elmore@du.edu
+#PBS -m be                     # (b) begin, (e) end, (a) abort
+
+cd $PBS_O_WORKDIR
+set -x
+
+module purge
+module load mpi2/openmpi-1.8.4-GCC.64.IB
+module load compilers64/gcc-4.9.2
+apps/R-3.2.2
+
+INPUT_BASENAME=test         # JOB NAME - USER INPUT PARAMETER
+JOB_FILE=$INPUT_BASENAME.R
+OUT_FILE=$INPUT_BASENAME.Rout
+
+mpirun -np 16 Rscript $JOB_FILE > $OUT_FILE
+```
+
+Hello World (Output)
+========================================================
+class: small-code
+
+```{r, engine="bash", hello-out, eval = FALSE, echo = TRUE}
+[relmore4@du-hpc]$ qsub test.sh
+4944727.idu-hpc
+[relmore4@du-hpc]$ more test.Rout
+I am 0 of 16 on node7.
+I am 1 of 16 on node7.
+I am 2 of 16 on node7.
+I am 5 of 16 on node7.
+I am 6 of 16 on node7.
+I am 7 of 16 on node7.
+I am 3 of 16 on node7.
+I am 4 of 16 on node7.
+I am 8 of 16 on node22.
+I am 9 of 16 on node22.
+I am 10 of 16 on node22.
+I am 11 of 16 on node22.
+I am 12 of 16 on node22.
+I am 13 of 16 on node22.
+I am 14 of 16 on node22.
+I am 15 of 16 on node22.
+```
+
+Gather, Reduce, Seeds
+========================================================
+class: small-code
+
+```{r gather, eval = FALSE, echo = TRUE}
+library(pbdMPI, quiet = TRUE)
+init()
+
+.comm.size <- comm.size()
+.comm.rank <- comm.rank()
+.hostname <- Sys.info()["nodename"]
+comm.set.seed(123456, diff = TRUE)
+x.spmd <- sample(1:10, size = 1)
+msg <- sprintf("Random number: %d on %d and %s.\n", x.spmd, .comm.rank, .hostname)
+comm.cat(msg, all.rank = TRUE, quiet = TRUE)
+gt <- gather(x.spmd)  ## allgather
+comm.print(gt)
+sm <- reduce(x.spmd) ## allreduce
+comm.print(sm)
+
+finalize()
+```
+
+Gather, Reduce, Seeds (Output)
+========================================================
+class: smaller-code
+
+```{r, engine="bash", gather-out, eval = FALSE, echo = TRUE}
+[relmore4@du-hpc]$ more simple-seed.Rout
+Random number: 3 on 0 and node7.
+Random number: 6 on 1 and node7.
+Random number: 8 on 2 and node7.
+Random number: 9 on 3 and node7.
+COMM.RANK = 0
+[[1]]
+[1] 3
+[[2]]
+[1] 6
+...
+[[8]]
+[1] 7
+
+COMM.RANK = 0
+[1] 51
+Random number: 6 on 4 and node22.
+Random number: 2 on 5 and node22.
+Random number: 10 on 6 and node22.
+Random number: 7 on 7 and node22.
+```
+
+Distributed Matrices
+========================================================
+
+- pbdDMAT: 
+  - ddmatrix is a distributed matrix data structure
+  - fast for distributed matrix operations
+  - “confusing, but very robust”
+- 100+ methods in the pbdDMAT package
+  - cov(x)  #serial
+  - cov(x)  #parallel
+
+Regression
+========================================================
+class: small-code
+
+```{r dd-reg, eval = FALSE, echo = TRUE}
+library(pbdDMAT, quiet = TRUE)
+init.grid()
+
+comm.set.seed(1234, diff = TRUE)
+N <- 100
+p <- 2
+
+## Distributed matrix objects
+dx <- ddmatrix(rnorm(N * p), ncol = p)
+dbeta <- ddmatrix(1:p, ncol = 1)
+depsilon <- ddmatrix(rnorm(N), ncol = 1)
+
+## Distributed computation
+dy <- dx %*% dbeta + depsilon
+dols <- solve(t(dx) %*% dx) %*% t(dx) %*% dy
+ols <- as.matrix(dols, proc.dest = 0)
+
+comm.cat("Straight matrix multiplation:\n", quiet = TRUE)
+comm.print(ols, quiet = TRUE)
+```
+
+Regression (cont.)
+========================================================
+class: small-code
+
+```{r dd-reg-cont, eval = FALSE, echo = TRUE}
+## alternatively, tools from pbdDMAT
+dres <- lm.fit(dx, dy)
+res <- as.matrix(dres$coef, proc.dest = 0)
+comm.cat("\nUsing lm.fit:\n", quiet = TRUE)
+comm.print(res, quiet = TRUE)
+
+## Undistribute and compute
+x <- as.matrix(dx, proc.dest = 0)
+y <- as.matrix(dy, proc.dest = 0)
+if(comm.rank() == 0){
+  serial.coef <- lm(y ~ x - 1)$coef
+}
+comm.cat("\nSerial fit:\n", quiet = TRUE)
+comm.print(serial.coef, quiet = TRUE)
+
+finalize()
+```
+
+Regression (Output)
+========================================================
+class: small-code
+
+```{r, engine="bash", dd-reg-out, eval = FALSE, echo = TRUE}
+[relmore4@du-hpc]$ more matrix-dd-reg.Rout
+Using 2x2 for the default grid size
+
+Straight matrix multiplation:
+         [,1]
+[1,] 1.010624
+[2,] 1.953435
+
+Using lm.fit:
+         [,1]
+[1,] 1.010624
+[2,] 1.953435
+
+Serial fit:
+      x1       x2
+1.010624 1.953435
+```
+
+Scaling Example
+========================================================
+
+- How long does it takes to compute a regression in parallel?
+- Variables:
+  - N = number of observations from 10K - 10MM
+  - Nodes = 1, 2, 4, 8, and 16
+  - CPN = 1, 2, 4
+
+Scaling Code
+========================================================
+class: small-code
+
+```{r scaling, eval = FALSE, echo = TRUE}
+library(pbdDMAT, quiet = TRUE)
+
+init.grid()
+comm.set.seed(29382, diff = TRUE)
+
+# blocking
+bldim <- 4
+
+# normal family
+mean <- 100
+sd <- 1000
+
+# biggest size to check
+ncol <- 100
+sizes <- 10^c(4:7) # ran out of time for 10^8
+```
+
+Scaling Code (cont.)
+========================================================
+class: smaller-code
+
+```{r scaling-cont, eval = FALSE, echo = TRUE}
+for (N in sizes){
+	if (comm.rank()==0){
+		x <- matrix(rnorm(N*ncol, mean=mean, sd=sd), nrow=N, ncol=ncol)
+		y <- matrix(rnorm(N, mean=mean, sd=sd), nrow=N, ncol=1)
+	}
+	else {
+		x <- NULL
+		y <- NULL
+	}
+	barrier()
+
+	dx <- as.ddmatrix(x, bldim=bldim)
+	dy <- as.ddmatrix(y, bldim=bldim)
+	prl <- system.time(lm.fit(x=dx, y=dy))[3]
+	prl <- allreduce(prl, op='max')
+
+	size <- N*ncol*8/1024
+	unit <- "kb"
+	if (log10(size) > 3){
+	  size <- size/1024
+	  unit <- "mb"
+	}
+  # Similar for "gb"
+	# Code to print timings
+}
+```
+
+Scaling Results
+========================================================
+
+```{r scaling-res-2, fig.width=12, fig.show='hold'}
+p + geom_line(size = 1.15) + 
+  geom_point() + 
+  facet_wrap(~ config, ncol = 4) + 
+  scale_color_manual("nodes:ppn", 
+                     values = c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c",
+                                "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00")) +
+  theme_bw() +
+  labs(x = "size (MB)", y = "time (s)") +
+  guides(colour=FALSE) +
+  scale_x_log10(limits = c(7, 1000))
+```
+
+Scaling Results
+========================================================
+
+```{r scaling-res-1, fig.width=12, fig.show='hold'}
+p + geom_line(size = 1.25) + 
+  geom_point(size = 1.5) +
+  scale_color_manual("nodes:ppn", 
+                     values = c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c",
+                                "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00")) +
+  theme_bw() +
+  labs(x = "size (MB)", y = "time (s)") +
+  scale_x_log10(limits = c(7, 1000))
+```
+
+Example from NREL
+========================================================
+
+<div class="midcenter" style="margin-left:-300px; margin-top:-300px;">
+<img src="benchmarks-2.png" width="600"></img>
+</div>
+
+Summary
+========================================================
+incremental:true
+
+- pbdMPI is “sugar on MPI”
+- pbdDMAT is a package (100+ functions)
+- Remember ddmatrix
+- pbdDEMO
+- Reading Data: read.csv, SQL, pbdNCDF4
+- Oh, and they have apply functions
+
+Resources
+========================================================
+
+- [PBD R Website](http://r-pbd.org/)
+- The pbdDEMO Vignette
+  - [Github](https://github.com/RBigData/pbdDEMO)
+  - [CRAN](https://cran.r-project.org/web/packages/pbdDEMO/index.html)
+- [Mailing list](https://groups.google.com/forum/?fromgroups#!forum/rbigdataprogramming)
+
+Questions
+========================================================
+incremental:true 
+
+<div style="margin-left:150px; margin-top:25px;">
+<img src="supercomputer.jpg" width="300" margin></img>
+</div>
+
+***
+1. How can I get an account?
+  - [DU HPC Site](http://portfolio.du.edu/du_hpc/)
+  - [Email Admin](mailto:hpc-admin@du.edu)
+2. Is your code available? Slides? 
+  - [Yes, on github (rtelmore)](https://github.com/rtelmore/du-hpc-r)
+
+Bibliography
+========================================================
+
+<small>
+```{r, echo=FALSE, results="asis"}
+bibliography()
+```
+</small>
